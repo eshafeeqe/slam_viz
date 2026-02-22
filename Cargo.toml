@@ -18,3 +18,5 @@ rfd = "0.15"
 bytemuck = { version = "1", features = ["derive"] }
 pollster = "0.3"
 anyhow = "1"
+egui_tiles = "0.10"
+egui_plot  = "0.29"

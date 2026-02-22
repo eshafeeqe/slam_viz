@@ -8,7 +8,7 @@ use winit::window::Window;
 use crate::data::{load_poses, CameraPose};
 use crate::renderer::{GpuContext, OrbitCamera, SceneRenderer};
 use crate::state::PlaybackState;
-use crate::ui::show_ui;
+use crate::ui::{show_ui, pane_kind::PaneKind};
 
 /// Blender-style mouse state
 enum MouseState {
@@ -38,6 +38,31 @@ pub struct App {
     ctrl_held: bool,
     open_file_requested: bool,
     error_msg: Option<String>,
+    tile_tree: egui_tiles::Tree<PaneKind>,
+}
+
+fn build_default_tree() -> egui_tiles::Tree<PaneKind> {
+    let mut tiles = egui_tiles::Tiles::default();
+
+    let view3d   = tiles.insert_pane(PaneKind::View3D);
+    let info     = tiles.insert_pane(PaneKind::InfoPanel);
+    let minimap  = tiles.insert_pane(PaneKind::MiniMap);
+
+    // Right column: Info (top) + MiniMap (bottom)
+    let right = tiles.insert_vertical_tile(vec![info, minimap]);
+
+    // Root: View3D (left 70%) + right column (30%)
+    let root = tiles.insert_horizontal_tile(vec![view3d, right]);
+
+    // Set share ratios
+    if let Some(egui_tiles::Tile::Container(egui_tiles::Container::Linear(lin))) =
+        tiles.get_mut(root)
+    {
+        lin.shares.set_share(view3d, 0.7);
+        lin.shares.set_share(right, 0.3);
+    }
+
+    egui_tiles::Tree::new("slam_tiles", root, tiles)
 }
 
 impl App {
@@ -188,6 +213,7 @@ impl App {
             ctrl_held: false,
             open_file_requested: false,
             error_msg: None,
+            tile_tree: build_default_tree(),
         }
     }
 
@@ -425,6 +451,7 @@ impl App {
                 &mut self.camera,
                 &mut self.open_file_requested,
                 &mut self.error_msg,
+                &mut self.tile_tree,
             );
         });
 
