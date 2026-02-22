@@ -46,6 +46,79 @@ impl App {
         let scene = SceneRenderer::new(&gpu.device);
 
         let egui_ctx = egui::Context::default();
+
+        // ── Modern dark theme ──────────────────────────────────────────────
+        egui_ctx.set_visuals({
+            let mut v = egui::Visuals::dark();
+            v.panel_fill       = egui::Color32::from_rgb(24, 24, 32);
+            v.window_fill      = egui::Color32::from_rgb(24, 24, 32);
+            v.extreme_bg_color = egui::Color32::from_rgb(18, 18, 24);
+            v.faint_bg_color   = egui::Color32::from_rgb(30, 30, 40);
+            v.window_stroke    = egui::Stroke::new(1.0, egui::Color32::from_rgb(48, 48, 62));
+            v.window_rounding  = egui::Rounding::same(6.0);
+            v.slider_trailing_fill = true;
+            v.selection = egui::style::Selection {
+                bg_fill: egui::Color32::from_rgb(0, 100, 116),
+                stroke:  egui::Stroke::new(1.0, egui::Color32::from_rgb(0, 188, 212)),
+            };
+            v.widgets.noninteractive = egui::style::WidgetVisuals {
+                weak_bg_fill: egui::Color32::from_rgb(24, 24, 32),
+                bg_fill:      egui::Color32::from_rgb(24, 24, 32),
+                bg_stroke:    egui::Stroke::new(1.0, egui::Color32::from_rgb(48, 48, 62)),
+                fg_stroke:    egui::Stroke::new(1.0, egui::Color32::from_rgb(140, 140, 158)),
+                rounding:     egui::Rounding::same(4.0),
+                expansion:    0.0,
+            };
+            v.widgets.inactive = egui::style::WidgetVisuals {
+                weak_bg_fill: egui::Color32::from_rgb(32, 32, 42),
+                bg_fill:      egui::Color32::from_rgb(32, 32, 42),
+                bg_stroke:    egui::Stroke::new(1.0, egui::Color32::from_rgb(48, 48, 62)),
+                fg_stroke:    egui::Stroke::new(1.0, egui::Color32::from_rgb(200, 200, 215)),
+                rounding:     egui::Rounding::same(4.0),
+                expansion:    0.0,
+            };
+            v.widgets.hovered = egui::style::WidgetVisuals {
+                weak_bg_fill: egui::Color32::from_rgb(42, 42, 56),
+                bg_fill:      egui::Color32::from_rgb(42, 42, 56),
+                bg_stroke:    egui::Stroke::new(1.5, egui::Color32::from_rgb(0, 188, 212)),
+                fg_stroke:    egui::Stroke::new(1.5, egui::Color32::from_rgb(0, 188, 212)),
+                rounding:     egui::Rounding::same(4.0),
+                expansion:    1.0,
+            };
+            v.widgets.active = egui::style::WidgetVisuals {
+                weak_bg_fill: egui::Color32::from_rgb(50, 50, 66),
+                bg_fill:      egui::Color32::from_rgb(50, 50, 66),
+                bg_stroke:    egui::Stroke::new(1.5, egui::Color32::from_rgb(0, 188, 212)),
+                fg_stroke:    egui::Stroke::new(2.0, egui::Color32::WHITE),
+                rounding:     egui::Rounding::same(4.0),
+                expansion:    1.0,
+            };
+            v.widgets.open = egui::style::WidgetVisuals {
+                weak_bg_fill: egui::Color32::from_rgb(32, 32, 42),
+                bg_fill:      egui::Color32::from_rgb(24, 24, 32),
+                bg_stroke:    egui::Stroke::new(1.0, egui::Color32::from_rgb(0, 188, 212)),
+                fg_stroke:    egui::Stroke::new(1.0, egui::Color32::from_rgb(200, 200, 215)),
+                rounding:     egui::Rounding::same(4.0),
+                expansion:    0.0,
+            };
+            v
+        });
+
+        egui_ctx.style_mut(|style| {
+            use egui::{FontFamily::Proportional, FontId, TextStyle::*};
+            style.text_styles = std::collections::BTreeMap::from([
+                (Small,     FontId::new(11.0, Proportional)),
+                (Body,      FontId::new(13.0, Proportional)),
+                (Monospace, FontId::new(13.0, egui::FontFamily::Monospace)),
+                (Button,    FontId::new(13.0, Proportional)),
+                (Heading,   FontId::new(16.0, Proportional)),
+            ]);
+            style.spacing.item_spacing   = egui::vec2(6.0, 4.0);
+            style.spacing.interact_size  = egui::vec2(40.0, 24.0);
+            style.spacing.button_padding = egui::vec2(8.0, 4.0);
+        });
+        // ──────────────────────────────────────────────────────────────────
+
         let viewport_id = egui::ViewportId::ROOT;
         let egui_state = egui_winit::State::new(
             egui_ctx.clone(),
