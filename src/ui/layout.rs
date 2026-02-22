@@ -69,8 +69,8 @@ pub fn show_ui(
                 .fill(Color32::from_rgb(20, 20, 28))
                 .stroke(Stroke::new(1.0, BORDER))
                 .inner_margin(egui::Margin {
-                    left: 12.0,
-                    right: 12.0,
+                    left: 0.0,
+                    right: 0.0,
                     top: 6.0,
                     bottom: 6.0,
                 }),

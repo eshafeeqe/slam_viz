@@ -10,6 +10,7 @@ pub struct TimelinePanel;
 impl TimelinePanel {
     pub fn show(ui: &mut Ui, playback: &mut PlaybackState, poses: &[CameraPose]) {
         ui.horizontal(|ui| {
+            ui.add_space(12.0); // manual left margin (panel left/right margin is 0)
             // ── Play / Pause button ──────────────────────────────────────────
             let icon = if playback.is_playing { "⏸" } else { "▶" };
             let play_btn = egui::Button::new(
@@ -57,15 +58,16 @@ impl TimelinePanel {
         ui.add_space(4.0);
 
         // ── Timeline slider — full-width, trailing fill ──────────────────────
+        // Slider ignores add_sized; it sizes from spacing().slider_width.
+        // Set slider_width to the available width so it fills the panel.
         let mut frame = playback.current_frame;
         let max = playback.total_frames.saturating_sub(1);
+        let width = ui.available_width();
+        ui.style_mut().spacing.slider_width = width;
         let slider = egui::Slider::new(&mut frame, 0..=max)
             .show_value(false)
             .trailing_fill(true);
-        if ui
-            .add_sized(egui::vec2(ui.available_width(), 20.0), slider)
-            .changed()
-        {
+        if ui.add(slider).changed() {
             playback.seek(frame);
         }
 
@@ -75,6 +77,7 @@ impl TimelinePanel {
             .map(|p| p.timestamp)
             .unwrap_or(0.0);
         ui.horizontal(|ui| {
+            ui.add_space(12.0); // manual left margin
             ui.label(
                 egui::RichText::new(format!("{} / {}", playback.current_frame, max))
                     .monospace()
@@ -82,6 +85,7 @@ impl TimelinePanel {
                     .color(TEXT_DIM),
             );
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.add_space(12.0); // manual right margin (right_to_left, so space is on the right)
                 ui.label(
                     egui::RichText::new(format!("{:.3}s", ts))
                         .monospace()
