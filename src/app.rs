@@ -123,11 +123,12 @@ impl App {
         event: &WindowEvent,
         event_loop: &winit::event_loop::ActiveEventLoop,
     ) {
-        // Feed event to egui first
+        // Always feed the event to egui so UI stays responsive.
+        // IMPORTANT: do NOT early-return on resp.consumed for mouse events —
+        // egui marks everything consumed when the pointer is over a panel (including
+        // the 3D viewport CentralPanel), which would kill all camera input.
+        // We use is_using_pointer() per-event to guard camera logic instead.
         let resp = self.egui_state.on_window_event(&self.window, event);
-        if resp.consumed {
-            return;
-        }
 
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
@@ -140,16 +141,18 @@ impl App {
                 self.load_file(path.clone());
             }
 
-            // Track modifier keys
+            // Track modifier keys (always — no conflict with egui)
             WindowEvent::ModifiersChanged(mods) => {
                 self.shift_held = mods.state().shift_key();
                 self.ctrl_held = mods.state().control_key();
-                // If modifier changed mid-drag, update the drag mode
                 self.update_drag_mode();
             }
 
-            // Numpad preset views (Blender-style)
+            // Numpad preset views — only when egui doesn't want keyboard
             WindowEvent::KeyboardInput { event, .. } => {
+                if resp.consumed {
+                    return; // egui is handling keyboard (e.g. text field focused)
+                }
                 if event.state == winit::event::ElementState::Pressed {
                     if let PhysicalKey::Code(key) = event.physical_key {
                         match key {
@@ -163,40 +166,50 @@ impl App {
                 }
             }
 
+            // Mouse button — always process for camera; is_using_pointer() guards
+            // against clicks that started on a real UI widget (slider, button, etc.)
             WindowEvent::MouseInput { state, button, .. } => {
+                let pressed = *state == winit::event::ElementState::Pressed;
+
+                // Release always clears drag state regardless of egui
+                if !pressed {
+                    match button {
+                        MouseButton::Middle => self.mouse_state = MouseState::None,
+                        MouseButton::Left => {
+                            if matches!(self.mouse_state, MouseState::Orbit { .. }) {
+                                self.mouse_state = MouseState::None;
+                            }
+                        }
+                        _ => {}
+                    }
+                    return;
+                }
+
+                // For press: only start camera drag when egui is NOT actively using pointer
                 if self.egui_ctx.is_using_pointer() {
                     return;
                 }
-                let pressed = *state == winit::event::ElementState::Pressed;
+
                 match button {
-                    // Middle mouse button — Blender's primary 3D navigation button
-                    MouseButton::Middle => {
-                        if pressed {
-                            self.start_drag();
-                        } else {
-                            self.mouse_state = MouseState::None;
-                        }
-                    }
-                    // Keep left button as fallback orbit (for users without MMB / on laptops)
+                    MouseButton::Middle => self.start_drag(),
+                    // Left button: fallback orbit (laptop / no MMB)
                     MouseButton::Left => {
-                        if pressed {
-                            self.mouse_state =
-                                MouseState::Orbit { last_x: 0.0, last_y: 0.0 };
-                        } else if matches!(self.mouse_state, MouseState::Orbit { .. }) {
-                            self.mouse_state = MouseState::None;
-                        }
+                        self.mouse_state = MouseState::Orbit { last_x: 0.0, last_y: 0.0 };
                     }
                     _ => {}
                 }
             }
 
+            // Cursor move — drive active drag; never blocked by resp.consumed
             WindowEvent::CursorMoved { position, .. } => {
+                let x = position.x as f32;
+                let y = position.y as f32;
+
+                // If egui grabbed the pointer mid-drag, cancel the drag
                 if self.egui_ctx.is_using_pointer() {
                     self.mouse_state = MouseState::None;
                     return;
                 }
-                let x = position.x as f32;
-                let y = position.y as f32;
 
                 match &mut self.mouse_state {
                     MouseState::Orbit { last_x, last_y } => {
@@ -220,7 +233,6 @@ impl App {
                     MouseState::Zoom { last_y } => {
                         let dy = y - *last_y;
                         if *last_y != 0.0 {
-                            // Drag up = zoom in (negative dy), drag down = zoom out
                             self.camera.zoom(-dy * 0.02);
                         }
                         *last_y = y;
@@ -229,11 +241,11 @@ impl App {
                 }
             }
 
+            // Scroll — zoom; skip only when egui is actively using it (e.g. scrollable panel)
             WindowEvent::MouseWheel { delta, .. } => {
                 if self.egui_ctx.is_using_pointer() {
                     return;
                 }
-                // Blender: scroll wheel zooms, one notch = ~10% distance change
                 let scroll = match delta {
                     MouseScrollDelta::LineDelta(_, y) => *y,
                     MouseScrollDelta::PixelDelta(p) => p.y as f32 * 0.05,
