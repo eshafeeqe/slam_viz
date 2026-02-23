@@ -6,9 +6,8 @@ use super::timeline::TimelinePanel;
 use super::pane_kind::PaneKind;
 use super::tile_behavior::{PaneContext, SlamBehavior};
 
-// ── Color palette constants ───────────────────────────────────────────────────
-const BG_DEEP:  Color32 = Color32::from_rgb(18, 18, 24);
-const BORDER:   Color32 = Color32::from_rgb(48, 48, 62);
+const BG_DEEP: Color32 = Color32::from_rgb(18, 18, 24);
+const BORDER:  Color32 = Color32::from_rgb(48, 48, 62);
 
 pub fn show_ui(
     ctx: &Context,
@@ -20,7 +19,6 @@ pub fn show_ui(
     error_msg: &mut Option<String>,
     tile_tree: &mut egui_tiles::Tree<PaneKind>,
 ) {
-    // ── Top menu bar ──────────────────────────────────────────────────────────
     egui::TopBottomPanel::top("menu_bar")
         .frame(
             egui::Frame::side_top_panel(&ctx.style())
@@ -39,12 +37,11 @@ pub fn show_ui(
                 ui.label(
                     egui::RichText::new(format!("{} poses", poses.len()))
                         .size(12.0)
-                        .color(egui::Color32::from_rgb(0, 188, 212)),
+                        .color(Color32::from_rgb(0, 188, 212)),
                 );
             });
         });
 
-    // ── Bottom timeline panel ─────────────────────────────────────────────────
     egui::TopBottomPanel::bottom("timeline")
         .min_height(76.0)
         .frame(
@@ -62,7 +59,6 @@ pub fn show_ui(
             TimelinePanel::show(ui, playback, poses);
         });
 
-    // ── Central tiled panel ───────────────────────────────────────────────────
     egui::CentralPanel::default()
         .frame(egui::Frame::none().fill(BG_DEEP))
         .show(ctx, |ui| {

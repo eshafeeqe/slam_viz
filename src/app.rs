@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Instant;
 use egui::TextureId;
-use winit::event::{MouseButton, MouseScrollDelta, WindowEvent};
+use winit::event::{MouseButton, WindowEvent};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::Window;
 
@@ -44,22 +44,18 @@ pub struct App {
 fn build_default_tree() -> egui_tiles::Tree<PaneKind> {
     let mut tiles = egui_tiles::Tiles::default();
 
-    let view3d   = tiles.insert_pane(PaneKind::View3D);
-    let info     = tiles.insert_pane(PaneKind::InfoPanel);
-    let minimap  = tiles.insert_pane(PaneKind::MiniMap);
+    let view3d = tiles.insert_pane(PaneKind::View3D);
+    let picker = tiles.insert_pane(PaneKind::PlotPicker);
+    let info   = tiles.insert_pane(PaneKind::InfoPanel);
 
-    // Right column: Info (top) + MiniMap (bottom)
-    let right = tiles.insert_vertical_tile(vec![info, minimap]);
+    let root = tiles.insert_horizontal_tile(vec![view3d, picker, info]);
 
-    // Root: View3D (left 70%) + right column (30%)
-    let root = tiles.insert_horizontal_tile(vec![view3d, right]);
-
-    // Set share ratios
     if let Some(egui_tiles::Tile::Container(egui_tiles::Container::Linear(lin))) =
         tiles.get_mut(root)
     {
-        lin.shares.set_share(view3d, 0.7);
-        lin.shares.set_share(right, 0.3);
+        lin.shares.set_share(view3d,  0.60);
+        lin.shares.set_share(picker,  0.22);
+        lin.shares.set_share(info,    0.18);
     }
 
     egui_tiles::Tree::new("slam_tiles", root, tiles)
@@ -341,16 +337,8 @@ impl App {
             }
 
             // Scroll — zoom; skip only when egui is actively using it (e.g. scrollable panel)
-            WindowEvent::MouseWheel { delta, .. } => {
-                if self.egui_ctx.is_using_pointer() {
-                    return;
-                }
-                let scroll = match delta {
-                    MouseScrollDelta::LineDelta(_, y) => *y,
-                    MouseScrollDelta::PixelDelta(p) => p.y as f32 * 0.05,
-                };
-                self.camera.zoom(scroll);
-            }
+            // Scroll-wheel zoom is handled inside the View3D pane (tile_behavior.rs)
+            // so that it only fires when the pointer is actually over the viewport.
 
             WindowEvent::RedrawRequested => {
                 self.render();

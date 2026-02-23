@@ -26,7 +26,16 @@ impl<'a> egui_tiles::Behavior<PaneKind> for SlamBehavior<'a> {
     ) -> egui_tiles::UiResponse {
         match pane {
             PaneKind::View3D => {
+                // Capture the pane bounds before rendering content.
+                let pane_rect = ui.clip_rect();
                 panes::view3d::show(ui, self.ctx.scene_texture_id);
+                // Scroll-wheel zoom — only when the pointer is inside the viewport pane.
+                // raw_scroll_delta is in logical pixels; ~50 px per wheel click,
+                // scaled to ~1.0 to match the original LineDelta behaviour.
+                let scroll = ui.input(|i| i.raw_scroll_delta.y);
+                if scroll != 0.0 && ui.rect_contains_pointer(pane_rect) {
+                    self.ctx.camera.zoom(scroll * 0.02);
+                }
             }
             PaneKind::InfoPanel => {
                 panes::info_panel::show(
@@ -45,6 +54,15 @@ impl<'a> egui_tiles::Behavior<PaneKind> for SlamBehavior<'a> {
             }
             PaneKind::SpeedPlot => {
                 panes::speed_plot::show(ui, self.ctx.poses, self.ctx.playback);
+            }
+            PaneKind::TimePlot(cfg) => {
+                panes::time_plot::show(
+                    ui, self.ctx.poses, self.ctx.playback, cfg,
+                    None, panes::time_plot::DEFAULT_HALF_WINDOW,
+                );
+            }
+            PaneKind::PlotPicker => {
+                panes::plot_picker::show(ui, self.ctx.poses, self.ctx.playback);
             }
         }
         egui_tiles::UiResponse::None
